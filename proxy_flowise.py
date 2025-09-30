@@ -1,16 +1,15 @@
-# proxy_flowise.py
 import os
 import textwrap
 import requests
 import logging
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
 # opcional para JWT decode
 import jwt
 
-load_dotenv()
+# NÃO usamos dotenv; as variáveis devem vir do ambiente (Railway / PROCESS env)
+# load_dotenv() removido — não leia .env do repositório
 
 # CONFIG
 FLOWISE_URL = os.getenv("FLOWISE_URL")  # ex: https://cloud.flowiseai.com/api/v1/prediction/<CHATFLOW_ID>
