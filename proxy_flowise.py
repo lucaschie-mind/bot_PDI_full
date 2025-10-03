@@ -18,7 +18,7 @@ logger = logging.getLogger("proxy_flowise")
 FLOWISE_URL = os.getenv("FLOWISE_URL")  # e.g. https://cloud.flowiseai.com/api/v1/prediction/<CHATFLOW_ID>
 FLOWISE_API_KEY = os.getenv("FLOWISE_API_KEY")  # optional
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "")  # comma separated list
-PORT = int(os.getenv("PORT", 8000))
+#PORT = int(os.getenv("PORT", 8000))
 
 # Parse allowed origins
 origins: List[str] = [o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()]
@@ -36,16 +36,9 @@ app.add_middleware(
 )
 
 @app.get("/")
-def read_root():
+def health_root():
     return {"status": "ok"}
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class ChatRequest(BaseModel):
     email: str
@@ -58,9 +51,9 @@ def get_user_docs_from_postgres(user_email: str, limit: int = 10) -> List[str]:
     """
     return []
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+@app.get("/go_widget", include_in_schema=False)
+async def go_widget():
+    return RedirectResponse(url="/widget")
 
 @app.post("/chat")
 async def chat(request: Request):
@@ -174,7 +167,3 @@ async def debug_routes():
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/widget")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("proxy_flowise:app", host="0.0.0.0", port=PORT, reload=True)
