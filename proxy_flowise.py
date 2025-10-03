@@ -27,6 +27,10 @@ if not origins:
 
 app = FastAPI(title="Flowise Proxy (secure)")
 
+@app.get("/")
+def read_root():
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
