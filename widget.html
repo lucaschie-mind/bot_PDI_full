@@ -1,0 +1,140 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flowise Embed Widget</title>
+  <style>
+    html,body { height:100%; margin:0; font-family:Inter,Arial,Helvetica,sans-serif }
+    #flowise-root { height:100vh; width:100%; }
+    #status { position:fixed; right:8px; top:8px; padding:6px 8px; background:#111;color:#fff;border-radius:6px;font-size:12px;opacity:0.9; z-index: 9999; }
+  </style>
+</head>
+<body>
+  <div id="status">widget initializing…</div>
+  <div id="flowise-root"></div>
+
+  <script>
+  (function(){
+    // ---------- CONFIGURATION FALLBACK (edit here if you want defaults) ----------
+    const DEFAULT_CHATFLOW_ID = "d78d860e-61a1-4893-a2c3-7c39f809e3cb"; // example id (hardcoded)
+    const DEFAULT_FLOWISE_HOST = "https://cloud.flowiseai.com"; // example host (hardcoded)
+    // Hardcoded user info for first iteration:
+    const DEFAULT_USER = {
+      id: "131", // can be UUID or numeric - for now hardcoded
+      name: "Lucas Machado",
+      email: "lucas@mindsight.com.br"
+    };
+    const DEFAULT_SESSION_ID = "static-session-001";
+
+    const statusEl = document.getElementById("status");
+
+    function setStatus(s){
+      if(statusEl) statusEl.textContent = s;
+    }
+
+    // ---------- helpers ----------
+    function param(name){
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    function safeStripSlash(u){
+      return u ? u.replace(/\/+$/, "") : u;
+    }
+
+    // get config from URL query params (parent can embed like widget?id=...&host=...)
+    const chatflowId = param("id") || DEFAULT_CHATFLOW_ID;
+    const flowiseHost = param("host") || DEFAULT_FLOWISE_HOST;
+
+    // user override from query params (optional)
+    const user = {
+      id: param("userId") || DEFAULT_USER.id,
+      name: param("userName") || DEFAULT_USER.name,
+      email: param("userEmail") || DEFAULT_USER.email
+    };
+
+    const sessionId = param("sessionId") || DEFAULT_SESSION_ID;
+
+    setStatus("loading Flowise script from " + flowiseHost);
+
+    // Insert embed script from Flowise host (path: /embed.min.js)
+    const script = document.createElement("script");
+    script.src = safeStripSlash(flowiseHost) + "/embed.min.js";
+    script.async = true;
+    script.onload = () => {
+      setStatus("initializing Flowise widget...");
+      try {
+        // Flowise global API - follow Flowise docs
+        if (!window.Flowise || !window.Flowise.initFull) {
+          setStatus("Flowise script did not expose expected API");
+          console.warn("Flowise script missing", window.Flowise);
+          return;
+        }
+
+        window.Flowise.initFull({
+          chatflowid: chatflowId,
+          apiHost: safeStripSlash(flowiseHost),
+          target: "#flowise-root",
+          chatflowConfig: {
+            sessionId: sessionId.toString(),
+            vars: {
+              userId: user.id,
+              userName: user.name,
+              userEmail: user.email,
+              currentUrl: window.location.href,
+              userRole: "authenticated"
+            }
+          }
+        });
+
+        setStatus("initialized (chatflowId: " + chatflowId + ")");
+        console.info("Flowise initialized with", { chatflowId, flowiseHost, sessionId, user });
+      } catch (err) {
+        setStatus("init error: " + (err && err.message));
+        console.error("Error initializing Flowise:", err);
+      }
+    };
+    script.onerror = (e) => {
+      setStatus("failed to load Flowise script");
+      console.error("Failed to load embed script from", script.src, e);
+    };
+
+    document.body.appendChild(script);
+
+    // ---------- Allow parent to update user data via postMessage ----------
+    // Parent can post: window.frames['theFrame'].postMessage({type:'flowise-init', user:{...}, chatflowId:'..', host:'..'}, targetOrigin);
+    window.addEventListener("message", (ev) => {
+      try {
+        const origin = ev.origin || (ev.originalEvent && ev.originalEvent.origin);
+        // optional: validate origin here (you can check against a whitelist or pass allowed origin via query param)
+        // if (origin !== "https://full.mindsight.com.br") return;
+
+        const data = ev.data || {};
+        if (data && data.type === "flowise-init") {
+          setStatus("parent init received, reinitializing...");
+          // optionally reload page with new query params
+          const gotUser = data.user || {};
+          const newChatflowId = data.chatflowId || chatflowId;
+          const newHost = data.host || flowiseHost;
+          // set values and reload to re-init
+          const q = new URL(window.location.href);
+          q.searchParams.set("id", newChatflowId);
+          q.searchParams.set("host", newHost);
+          if (gotUser.id) q.searchParams.set("userId", gotUser.id);
+          if (gotUser.name) q.searchParams.set("userName", gotUser.name);
+          if (gotUser.email) q.searchParams.set("userEmail", gotUser.email);
+          // reload to re-run script and initialize with new params
+          window.location.href = q.toString();
+        }
+      } catch (e) { console.error("postMessage handler error", e); }
+    }, false);
+
+    // show the final config in console for debug
+    console.debug("Widget config", { chatflowId, flowiseHost, sessionId, user });
+
+  })();
+  </script>
+</body>
+</html>

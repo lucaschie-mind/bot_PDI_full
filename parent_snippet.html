@@ -1,0 +1,24 @@
+
+<!-- parent_snippet.html -->
+<!-- Paste this into the parent application (sandbox or prod) where the user is logged in -->
+<iframe id="bot-frame" src="https://<PROXY_SERVICE_URL>/widget" style="width:100%;height:600px;border:0" title="Bot"></iframe>
+<script>
+(async function(){
+  const iframe = document.getElementById('bot-frame');
+  try {
+    const cu = await fetch("/mindsight/api/v1/current_user/", {
+      credentials: "include",
+      headers: { "X-Requested-With":"XMLHttpRequest", "Accept":"application/json" }
+    }).then(r => r.json());
+    const email = cu.username || cu.email || (cu.person && cu.person.email);
+    const id = cu.person && cu.person.id;
+    iframe.addEventListener('load', () => {
+      // targetOrigin must match proxy origin (replace accordingly)
+      iframe.contentWindow.postMessage({ type: 'flowise-init', chatflowId: '<CHATFLOW_ID>', host: 'https://cloud.flowiseai.com', user: { id, name: cu.name || (cu.person && cu.person.name), email } }, 'https://<PROXY_SERVICE_URL>');
+      console.log("init sent to iframe:", email, id);
+    });
+  } catch (e) {
+    console.error('Failed to fetch current_user:', e);
+  }
+})();
+</script>
