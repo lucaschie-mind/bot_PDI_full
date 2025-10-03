@@ -23,9 +23,17 @@ PORT = int(os.getenv("PORT", 8000))
 # Parse allowed origins
 origins: List[str] = [o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()]
 if not origins:
-    origins = ["*"]  # development default; set explicit origins in production
+    origins = ["*"]
 
 app = FastAPI(title="Flowise Proxy (secure)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
