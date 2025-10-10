@@ -6,7 +6,7 @@ Este repositório contém o BOT PDI pronto para embed (iframe), com fluxo:
 > 🔐 **Sem segredos no Git**: use apenas o painel **Railway → Variables**. O arquivo `.env.example` é só um modelo.
 
 ## Arquivos importantes
-- `widget_oi_fastapi_1.5_FIXED6.py` — seu BOT
+- `widget_fastapi.py` — seu BOT
 - `main.py` — loader que exporta `app` do arquivo acima (não precisa renomear)
 - `requirements.txt` — dependências
 - `Procfile` — comando para iniciar o servidor (uvicorn)
